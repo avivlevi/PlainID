@@ -21,12 +21,8 @@ import { isObjEmpty } from "../../helpers/utils";
 
 const ItemActions = () => {
   const [{ activeResource }] = useItemState();
-  const [actions, setActions] = useState({
-    allActions: {},
-    itemActions: [],
-    isFetching: true,
-  });
-
+  const [isFetching, setIsFetching] = useState(true);
+  const [actions, setActions] = useState({});
 
   useEffect(() => {
     if (isObjEmpty(activeResource)) return;
@@ -35,51 +31,31 @@ const ItemActions = () => {
 
     // check if allItemActions include activeSource action Ids, if not, fetch only what needed
     let missingIds = [],
-      existingActions = [],
-      allActions = { ...actions.allActions };
+      allActions = { ...actions };
 
     activeResourceActionIds.forEach((id) => {
       if (!allActions[id]) missingIds.push(id);
-      else existingActions.push(allActions[id]);
     });
 
     if (missingIds.length) {
       // need to call to api with missingIds
       getActions(missingIds);
-    } else {
-      // set itemsActions
-      setActions((prevState) => ({
-        ...prevState,
-        itemActions: existingActions,
-      }));
     }
   }, [activeResource]);
 
   const getActions = async (actionsIds) => {
-    !actions.isFetching &&
-      setActions((prevState) => ({ ...prevState, isFetching: true }));
+    !isFetching && setIsFetching(true);
     const newActions = await GetActions(actionsIds);
 
     // build actions map
-    let actionsMap = {};
+    let newAllActions = { ...actions };
 
     newActions.forEach((a) => {
-      actionsMap[a.id] = a;
+      newAllActions[a.id] = a;
     });
 
-    setActions((prevState) => {
-      let allActions = { ...prevState.allActions, ...actionsMap },
-        cleanedPrevItemActions = prevState.itemActions.filter((prevAction) =>
-          activeResource.actionIds.includes(prevAction.id)
-        ),
-        itemActions = [...cleanedPrevItemActions, ...Object.values(actionsMap)];
-
-      return {
-        isFetching: false,
-        allActions,
-        itemActions,
-      };
-    });
+    setActions(newAllActions);
+    setIsFetching(false);
   };
 
   return (
@@ -92,11 +68,13 @@ const ItemActions = () => {
       <T.Paragraph>Even more explenation here.</T.Paragraph>
 
       <Layout.Spacer margin="10px 0" />
-
-      {!actions.isFetching ? (
-        actions.itemActions.map((itemAction) => {
-          return <ItemAction key={itemAction.id} name={itemAction.name} />;
-        })
+      {!isFetching ? (
+        activeResource.actionIds.map(
+          (actionId) =>
+            actions[actionId] && (
+              <ItemAction key={actionId} name={actions[actionId].name} />
+            )
+        )
       ) : (
         <Skeleton count={5} height={40} />
       )}
