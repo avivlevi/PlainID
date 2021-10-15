@@ -26,4 +26,5 @@ export const ItemActiveImg = styled.img`
 
 export const ItemArrowImg = styled.img`
   margin-left: auto;
+  display: ${props => props.isActive ? 'block' : 'none'};
 `;
